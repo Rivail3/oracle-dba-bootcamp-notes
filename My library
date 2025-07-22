@@ -1,0 +1,1 @@
+select distinct segment_type from dba_segments;
