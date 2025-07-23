@@ -13,7 +13,7 @@ ALTER SYSTEM RESET db_cache_size [SCOPE=escopo];
 CREATE PFILE FROM SPFILE;
 CREATE PFILE='/home/oracle/my_pfile.ora' FROM SPFILE;
 CREATE SPFILE='/home/oracle/my_spfile' FROM MEMORY;
-CREATE SPFILE FROM PFILE='/home/oracle/my_custom_pfile.ora';
+CREATE SPFILE FROM PFILE='/home/oracle/my_pfile.ora';
 ALTER SYSTEM SET processes=500 SCOPE=SPFILE;
 SHOW PARAMETER db_cache_size
 SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='db_cache_size';
