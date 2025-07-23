@@ -1,1 +1,24 @@
-select distinct segment_type from dba_segments;
+cd $ORACLE_BASE/diag/rdbms/orcl/orcl/trace
+sqlplus / as sysdba
+show parameter
+show parameter control
+show parameter sga
+show parameter processes
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='processes';
+STARTUP PFILE='/home/oracle/pfile.ora';
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='[NOME DO PARÂMETRO]';
+ALTER SYSTEM SET nome_do_parametro=valor [COMMENT='comentário'
+SCOPE=escopo]
+ALTER SYSTEM RESET db_cache_size [SCOPE=escopo];
+CREATE PFILE FROM SPFILE;
+CREATE PFILE='/home/oracle/my_pfile.ora' FROM SPFILE;
+CREATE SPFILE='/home/oracle/my_spfile' FROM MEMORY;
+CREATE SPFILE FROM PFILE='/home/oracle/my_custom_pfile.ora';
+ALTER SYSTEM SET processes=500 SCOPE=SPFILE;
+SHOW PARAMETER db_cache_size
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='db_cache_size';
+ALTER SYSTEM SET db_cache_size=100M SCOPE=MEMORY;
+SHOW PARAMETER db_cache_size
+ALTER SYSTEM RESET db_cache_size SCOPE=MEMORY;
+SHOW PARAMETER db_cache_size
+cd $ORACLE_HOME/dbs--localização padrão dos PFILEs e SPFILEs
