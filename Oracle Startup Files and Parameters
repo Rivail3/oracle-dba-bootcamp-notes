@@ -1,0 +1,221 @@
+ # Oracle Startup Files and Parameters – Bootcamp Notes
+## 🇺🇸 English
+
+These notes cover working with Oracle startup files (PFILE, SPFILE) and key parameters, including how to view, set, and persist changes.
+
+---
+
+### **1. Checking and Modifying Parameters**
+
+#### Example: `processes` parameter
+```sql
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='processes'; -- Returns FALSE
+ALTER SYSTEM SET processes=500; -- Error: ORA-02095
+ALTER SYSTEM SET processes=500 SCOPE=MEMORY; -- Error: ORA-02095
+ALTER SYSTEM SET processes=500 SCOPE=SPFILE; -- Success: system will be altered
+SHOW PARAMETER processes; -- Change applies after instance restart
+```
+
+#### Example: `db_cache_size` parameter
+```sql
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='db_cache_size'; -- Returns TRUE
+SHOW PARAMETER db_cache_size;
+ALTER SYSTEM SET db_cache_size=100M SCOPE=MEMORY; -- Applied immediately (not persistent)
+SHOW PARAMETER db_cache_size; -- Check new value
+ALTER SYSTEM RESET db_cache_size SCOPE=MEMORY;
+SHOW PARAMETER db_cache_size; -- Check reset value
+exit -- Exit SQLPlus
+```
+
+---
+
+### **2. Managing PFILE and SPFILE Files**
+
+#### Viewing and Deleting Files
+```bash
+cd $ORACLE_HOME/dbs
+ls -lh               # Check for PFILE and SPFILE
+rm initorcl.ora      # Remove PFILE
+```
+
+#### Creating a PFILE from SPFILE
+```sql
+create pfile from spfile; -- Default location
+create pfile='/home/oracle/my_pfile.ora' from spfile; -- Custom location
+!ls /home/oracle      # Confirm file creation
+```
+
+---
+
+### **3. Starting the Instance with a Specific PFILE**
+
+```sql
+STARTUP PFILE='/home/oracle/my_pfile.ora'
+-- Note: When using PFILE, SPFILE-specific changes will fail
+ALTER SYSTEM SET processes=500 SCOPE=SPFILE; -- ORA-32001 error
+ALTER SYSTEM SET db_cache_size=100M SCOPE=MEMORY; -- Allowed
+ALTER SYSTEM SET db_cache_size=100M scope=both; -- ORA-32001 error
+SHUTDOWN IMMEDIATE
+startup
+SHOW PARAMETER db_cache_size -- Will revert to default if only MEMORY was used
+```
+
+---
+
+### **4. Working with SPFILE**
+
+```sql
+SHOW PARAMETER SPFILE -- Shows which SPFILE is in use
+!rm -f /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora -- Remove SPFILE
+!rm -f /u01/app/oracle/product/19.0.0/dbhome_1/dbs/initorcl.ora -- Remove PFILE
+!ls -lh /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora -- Confirm deletion
+CREATE SPFILE='/home/oracle/spfile_from_memory.ora' FROM MEMORY; -- Create SPFILE from current settings
+ALTER SYSTEM SET PROCESSES=500 SCOPE=SPFILE; -- May still error if SPFILE not active
+!cp /home/oracle/spfile_from_memory.ora /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora -- Restore SPFILE
+ALTER SYSTEM SET PROCESSES=500 SCOPE=SPFILE; -- Success
+```
+
+---
+
+### **5. Recovering When PFILE and SPFILE Are Missing**
+
+```sql
+!rm -f /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora
+shutdown immediate
+startup                       -- Fails: no pfile/spfile
+STARTUP NOMOUNT PFILE='/home/oracle/my_pfile.ora';
+CREATE SPFILE FROM PFILE='/home/oracle/my_pfile.ora'; -- Recover SPFILE
+shutdown immediate
+startup
+```
+
+If all files are missing:
+- Check the alert log for non-default parameter values:
+```bash
+cd $ORACLE_BASE/diag/rdbms/orcl/orcl/trace
+view alert_orcl.log
+```
+- Create a new PFILE with those values:
+```bash
+cd /home/oracle/
+vi pfile_from_alert.ora -- Paste the parameters
+sqlplus / as sysdba
+startup pfile='/home/oracle/pfile_from_alert.ora'
+create spfile from pfile='/home/oracle/pfile_from_alert.ora';
+shutdown immediate
+startup
+SHOW PARAMETER spfile -- Check if SPFILE is in use
+```
+
+---
+
+## 🇧🇷 Português
+
+Estas anotações abrangem o uso dos arquivos de inicialização do Oracle (PFILE, SPFILE) e parâmetros importantes, incluindo como visualizar, alterar e persistir mudanças.
+
+---
+
+### **1. Verificando e Modificando Parâmetros**
+
+#### Exemplo: parâmetro `processes`
+```sql
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='processes'; -- Retorna FALSE
+ALTER SYSTEM SET processes=500; -- Erro: ORA-02095
+ALTER SYSTEM SET processes=500 SCOPE=MEMORY; -- Erro: ORA-02095
+ALTER SYSTEM SET processes=500 SCOPE=SPFILE; -- Sucesso: sistema será alterado
+SHOW PARAMETER processes; -- Mudança só após reinicialização
+```
+
+#### Exemplo: parâmetro `db_cache_size`
+```sql
+SELECT ISINSTANCE_MODIFIABLE FROM V$PARAMETER WHERE NAME='db_cache_size'; -- Retorna TRUE
+SHOW PARAMETER db_cache_size;
+ALTER SYSTEM SET db_cache_size=100M SCOPE=MEMORY; -- Aplica imediatamente (não persistente)
+SHOW PARAMETER db_cache_size; -- Verifique o novo valor
+ALTER SYSTEM RESET db_cache_size SCOPE=MEMORY;
+SHOW PARAMETER db_cache_size; -- Veja o valor resetado
+exit -- Sair do SQLPlus
+```
+
+---
+
+### **2. Gerenciando Arquivos PFILE e SPFILE**
+
+#### Visualizando e Removendo Arquivos
+```bash
+cd $ORACLE_HOME/dbs
+ls -lh               # Verificar PFILE e SPFILE
+rm initorcl.ora      # Remover PFILE
+```
+
+#### Criando um PFILE a partir do SPFILE
+```sql
+sqlplus / as sysdba
+create pfile from spfile; -- Local padrão
+create pfile='/home/oracle/my_pfile.ora' from spfile; -- Local personalizado
+!ls /home/oracle      # Confirmar criação
+```
+
+---
+
+### **3. Inicializando a Instância com um PFILE Específico**
+
+```sql
+STARTUP PFILE='/home/oracle/my_pfile.ora'
+-- Ao usar PFILE, alterações para SPFILE irão falhar
+ALTER SYSTEM SET processes=500 SCOPE=SPFILE; -- Erro ORA-32001
+ALTER SYSTEM SET db_cache_size=100M SCOPE=MEMORY; -- Permitido
+ALTER SYSTEM SET db_cache_size=100M scope=both; -- Erro 32001
+SHUTDOWN IMMEDIATE
+startup
+SHOW PARAMETER db_cache_size -- Volta ao padrão se só alterado em MEMORY
+```
+
+---
+
+### **4. Trabalhando com SPFILE**
+
+```sql
+SHOW PARAMETER SPFILE -- Mostra o SPFILE em uso
+!rm -f /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora -- Remove SPFILE
+!rm -f /u01/app/oracle/product/19.0.0/dbhome_1/dbs/initorcl.ora -- Remove PFILE
+!ls -lh /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora -- Confirma remoção
+CREATE SPFILE='/home/oracle/spfile_from_memory.ora' FROM MEMORY; -- Cria SPFILE das configurações em memória
+ALTER SYSTEM SET PROCESSES=500 SCOPE=SPFILE; -- Pode dar erro se SPFILE não está ativo
+!cp /home/oracle/spfile_from_memory.ora /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora -- Restaura SPFILE
+ALTER SYSTEM SET PROCESSES=500 SCOPE=SPFILE; -- Sucesso
+```
+
+---
+
+### **5. Recuperando Quando Não Há PFILE Nem SPFILE**
+
+```sql
+!rm -f /u01/app/oracle/product/19.0.0/dbhome_1/dbs/spfileorcl.ora
+shutdown immediate
+startup                       -- Falha: sem pfile/spfile
+STARTUP NOMOUNT PFILE='/home/oracle/my_pfile.ora';
+CREATE SPFILE FROM PFILE='/home/oracle/my_pfile.ora'; -- Recupera SPFILE
+shutdown immediate
+startup
+```
+
+Se todos os arquivos estiverem ausentes:
+- Consulte o alert log para achar parâmetros não padrão:
+```bash
+cd $ORACLE_BASE/diag/rdbms/orcl/orcl/trace
+view alert_orcl.log
+```
+- Crie novo PFILE com esses valores:
+```bash
+cd /home/oracle/
+vi pfile_from_alert.ora -- Cole os parâmetros
+sqlplus / as sysdba
+startup pfile='/home/oracle/pfile_from_alert.ora'
+create spfile from pfile='/home/oracle/pfile_from_alert.ora';
+shutdown immediate
+startup
+SHOW PARAMETER spfile -- Confirme uso do SPFILE
+```
+
+---
