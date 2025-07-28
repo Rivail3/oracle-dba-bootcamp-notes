@@ -1,0 +1,135 @@
+# Oracle Automatic File Management (OMF) – Practical Notes 🇬🇧🇧🇷
+
+> This file summarizes hands-on notes about Oracle Managed Files (OMF), including configuration, usage, troubleshooting, and recovery of tablespaces, datafiles, logfiles, and Fast Recovery Area (FRA). All commands are explained with context in English and Portuguese to help DBAs and learners understand and apply OMF concepts in real-world scenarios.
+
+---
+
+## Key Concepts / Conceitos Principais
+
+- How to check, set, and use OMF with `db_create_file_dest` and related parameters  
+- Creation and extension of tablespaces and datafiles, with and without OMF  
+- Working with redo log files and multiplexing  
+- Configuring and managing Fast Recovery Area (FRA)  
+- Real SQL*Plus and RMAN commands with explanations  
+- Troubleshooting common errors
+
+---
+
+## Notes / Anotações
+
+```sql
+SQL> show parameter db_create -- See parameters with 'db_create' in their name
+SELECT FILE_NAME FROM DBA_DATA_FILES; -- See where datafiles are located
+exit -- Exit sqlplus
+cd /u02/oradata/ORCL/ -- Data files directory
+ls -lh -- List files
+```
+
+**EN:** If you try to create a tablespace without OMF destination, you must specify the file's path and size.  
+**PT:** Se tentar criar uma tablespace sem o destino OMF, deve especificar o caminho e tamanho do arquivo.
+
+```sql
+CREATE TABLESPACE teste DATAFILE SIZE 10M; -- ORA-02236 error, missing OMF destination
+CREATE TABLESPACE teste2; -- ORA-02199 error, missing DATAFILE/TEMPFILE clause
+CREATE TABLESPACE teste DATAFILE '/u02/oradata/my_datafile1.dbf' SIZE 10M; -- Tablespace created
+!ls -lh /u02/oradata -- Check the file
+```
+
+**EN:** To add datafiles, specify path unless OMF is set.  
+**PT:** Para adicionar datafiles, especifique o caminho, a menos que OMF esteja configurado.
+
+```sql
+ALTER TABLESPACE teste ADD DATAFILE '/u02/oradata/my_datafile2.dbf' SIZE 10M;
+SET LINES 400
+COL FILE_NAME FOR A50
+SELECT FILE_NAME, BYTES/1024/1024 "SIZE MB", AUTOEXTENSIBLE FROM DBA_DATA_FILES WHERE TABLESPACE_NAME='TESTE';
+```
+
+**EN:** To enable OMF, set `db_create_file_dest`.  
+**PT:** Para habilitar OMF, defina `db_create_file_dest`.
+
+```sql
+ALTER SYSTEM SET db_create_file_dest='/u02/oradata/' SCOPE=BOTH;
+show parameter db_create_file_dest
+```
+
+**EN:** Now you can create tablespaces and datafiles without specifying the path.  
+**PT:** Agora pode criar tablespaces e datafiles sem especificar o caminho.
+
+```sql
+ALTER TABLESPACE teste ADD DATAFILE SIZE 10M;
+ALTER TABLESPACE teste ADD DATAFILE; -- Default size: 100M
+CREATE TABLESPACE teste2;
+SELECT FILE_NAME, BYTES/1024/1024 "SIZE MB", MAXBYTES/1024/1024 "MAX MB", AUTOEXTENSIBLE FROM DBA_DATA_FILES WHERE TABLESPACE_NAME='TESTE2';
+```
+
+**EN:** The same logic applies to temporary tablespaces.  
+**PT:** A mesma lógica se aplica a tablespaces temporárias.
+
+```sql
+CREATE TEMPORARY TABLESPACE temptbs_1;
+SELECT FILE_NAME, BYTES/1024/1024 "SIZE MB", MAXBYTES/1024/1024 "MAX MB", AUTOEXTENSIBLE FROM DBA_TEMP_FILES WHERE TABLESPACE_NAME='TEMPTBS_1';
+```
+
+---
+
+### Redo Log Files / Arquivos de Log Redo
+
+**EN:** After setting OMF, log files can be added without specifying paths.  
+**PT:** Após configurar OMF, arquivos de log podem ser adicionados sem especificar caminhos.
+
+```sql
+SELECT GROUP#, MEMBER FROM V$LOGFILE;
+ALTER DATABASE ADD LOGFILE;
+ALTER SYSTEM SET db_create_file_dest='';
+ALTER DATABASE ADD LOGFILE; -- ORA-02236 error, no OMF set
+ALTER DATABASE ADD LOGFILE ('/home/oracle/oradata/log1c.log', '/u02/oradata/log2c.log') SIZE 50M; -- Multiplexing
+ALTER SYSTEM SET DB_CREATE_ONLINE_LOG_DEST_1 = '/home/oracle/oradata' SCOPE=BOTH;
+ALTER SYSTEM SET DB_CREATE_ONLINE_LOG_DEST_2 = '/u02/oradata' SCOPE=BOTH;
+SELECT GROUP#, MEMBER FROM V$LOGFILE;
+ALTER DATABASE ADD LOGFILE; -- Creates one logfile in each path
+```
+
+---
+
+### Fast Recovery Area (FRA) / Área de Recuperação Rápida
+
+**EN:** FRA must have both path and size set.  
+**PT:** FRA deve ter caminho e tamanho definidos.
+
+```sql
+SHOW PARAMETER DB_RECOVERY_FILE_DEST
+ALTER SYSTEM SET DB_RECOVERY_FILE_DEST_SIZE=20G SCOPE=BOTH;
+ALTER SYSTEM SET DB_RECOVERY_FILE_DEST = '/u02/FRA' SCOPE=BOTH;
+SELECT * FROM V$RECOVERY_AREA_USAGE;
+```
+
+**EN:** Use RMAN for backup and recovery operations in FRA.  
+**PT:** Use RMAN para operações de backup e recuperação na FRA.
+
+```sql
+rman target /
+RMAN> backup current controlfile;
+SELECT * FROM V$RECOVERY_AREA_USAGE;
+!ls /u02/FRA/ORCL/backupset/2025_07_26 -- Check backup pieces
+```
+
+---
+
+## Troubleshooting / Solução de Problemas
+
+- ORA-02236: Missing destination for OMF – Set `db_create_file_dest`
+- ORA-02199: Missing DATAFILE/TEMPFILE clause – Specify file info or set OMF
+- FRA errors: Always specify both path and size
+
+---
+
+## References
+
+- Oracle Documentation: [Oracle® Database Administrator’s Guide](https://docs.oracle.com/en/database/oracle/oracle-database/19/dbaov/index.html)
+- [Oracle Managed Files (OMF) Overview](https://docs.oracle.com/en/database/oracle/oracle-database/19/admin/managing-oracle-managed-files.html)
+
+---
+
+**Author:** Rivail3  
+**Repository:** [oracle-dba-bootcamp-notes](https://github.com/Rivail3/oracle-dba-bootcamp-notes)
