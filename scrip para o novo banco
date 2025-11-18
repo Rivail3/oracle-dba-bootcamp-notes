@@ -1,0 +1,84 @@
+script para o novo banco 
+
+vi /etc/hosts
+xxx.xxx.xxx.xx ol7-dba.localdomain ol7-dba
+	yum -y install oracle-database-preinstall-19c
+	passwd oracle
+--arrastar o arquivo zip do banco para a vm no usuario oracle
+	vi /etc/sysconfig/network-scripts/ifcfg-enp0s3
+	BOOTPROTO="static"
+	IPADDR=192.168.100.42 
+vi /etc/selinux/config
+selinux=disabled
+	systemctl stop firewalld
+	systemctl disable firewalld
+mkdir -p /u01/app/oracle/product/19.0.0/dbhome_1
+mkdir -p /u02/oradata
+	chown -R oracle:oinstall /u01 /u02
+	chmod -R 775 /u01 /u02
+--como usuário oracle:--
+cd /u01/app/oracle/product/19.0.0/dbhome_1
+unzip -o /home/oracle/LINUX.x64_193000_db_home.zip
+./runInstaller
+	ps aux | grep smon
+	. oraenv
+	orcl
+	sqlplus / as sysdba
+	SELECT INSTANCE_NAME, STARTUP_TIME, STATUS FROM V$INSTANCE;
+	EXIT
+cd $ORACLE_HOME/demo/schema/human_resources
+	sqlplus / as sysdba
+	show pdbs
+	alter session set container=orclpdb;
+	alter user hr account unlock;
+@hr_main
+hr
+users
+temp
+/home/oracle
+	desc hr.employees
+vi $ORACLE_HOME/network/admin/listener.ora
+vi $ORACLE_HOME/network/admin/tnsnames.ora
+	sqlplus / as sysdba
+	ALTER SYSTEM SET LOCAL_LISTENER='LISTENER';
+lsnrctl stop
+lsnrctl start
+	sqlplus / as sysdba
+	 show pdbs
+	ALTER PLUGGABLE DATABASE ORCLPDB OPEN;
+sqlplus hr/hr@orclpdb
+show user
+show con_name
+
+--CHECKPOINT E INSTANCE RECOVERY--
+--aba 3 do moba:--
+. oraenv --orcl
+cd $ORACLE_BASE/diag/rdbms/orcl/orcl/trace
+>alert_orcl.log
+clear
+tail -f alert_orcl.log
+--aba 1--
+. oraenv --orcl
+sqlplus / as sysdba
+CREATE TABLE clientes (cliente_id NUMBER PRIMARY KEY, nome VARCHAR2(50), email VARCHAR2(50));
+
+INSERT INTO clientes (cliente_id, nome, email) VALUES (1, 'Maria Silva', 'maria.silva@example.com');
+INSERT INTO clientes (cliente_id, nome, email) VALUES (2, 'Joao Costa', 'joao.costa@example.com');
+INSERT INTO clientes (cliente_id, nome, email) VALUES (3, 'Paulo Roberto', 'paulo.roberto@example.com');
+INSERT INTO clientes (cliente_id, nome, email) VALUES (4, 'Juliana Santos', 'juliana.santos@example.com');
+
+SET LINES 400
+SELECT * FROM CLIENTES;
+ALTER SYSTEM CHECKPOINT;
+COMMIT;
+
+INSERT INTO clientes (cliente_id, nome, email) VALUES (5, 'Lucas Oliveira', 'lucas.oliveira@example.com');
+INSERT INTO clientes (cliente_id, nome, email) VALUES (6, 'Ana Carolina', 'anacarolina@example.com');
+INSERT INTO clientes (cliente_id, nome, email) VALUES (7, 'Pedro Fernandes', 'pedro.fernandes@example.com');
+
+--aba 2
+INSERT INTO clientes (cliente_id, nome, email) VALUES (8, 'Fernanda Souza', 'fernanda.souza@example.com');
+--aba1--
+shutdown abort;
+startup mount
+alter database open;
