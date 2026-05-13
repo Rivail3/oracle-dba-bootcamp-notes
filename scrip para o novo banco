@@ -18,7 +18,7 @@ mkdir -p /u02/oradata
 	chmod -R 775 /u01 /u02
 --como usuário oracle:--
 cd /u01/app/oracle/product/19.0.0/dbhome_1
-unzip -o /home/oracle/LINUX.x64_193000_db_home.zip
+unzip -q /home/oracle/LINUX.X64_193000_db_home.zip
 ./runInstaller
 	ps aux | grep smon
 	. oraenv
