@@ -69,9 +69,9 @@ INSERT INTO clientes (cliente_id, nome, email) VALUES (4, 'Juliana Santos', 'jul
 
 SET LINES 400
 SELECT * FROM CLIENTES;
-ALTER SYSTEM CHECKPOINT;
 SELECT XID, START_TIME, STATUS, NAME FROM V$TRANSACTION;
 SELECT CURRENT_SCN FROM V$DATABASE;
+ALTER SYSTEM CHECKPOINT;
 COMMIT;
 
 INSERT INTO clientes (cliente_id, nome, email) VALUES (5, 'Lucas Oliveira', 'lucas.oliveira@example.com');
